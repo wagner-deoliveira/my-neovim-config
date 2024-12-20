@@ -1,2 +1,2 @@
-# my-neovim-config
-My configuration for Neovim
+# My configuration for Neovim
+The plugins I'm using lately
