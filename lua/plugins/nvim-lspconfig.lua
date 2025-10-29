@@ -65,12 +65,13 @@ return { -- Main LSP Configuration
 		local capabilities = vim.lsp.protocol.make_client_capabilities()
 		capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 
-		local lua_ls_config = require("lspconfig").lua_ls
-		lua_ls_config.setup({
+		-- Configure lua_ls without using the deprecated lspconfig require
+		vim.lsp.config("lua_ls", {
+			capabilities = capabilities,
 			on_init = function(client)
 				if client.workspace_folders then
 					local path = client.workspace_folders[1].name
-					if vim.loop.fs_stat(path .. "/.luarc.json") or vim.loop.fs_stat(path .. "/.luarc.jsonc") then
+					if vim.uv.fs_stat(path .. "/.luarc.json") or vim.uv.fs_stat(path .. "/.luarc.jsonc") then
 						return
 					end
 				end
@@ -79,17 +80,21 @@ return { -- Main LSP Configuration
 					runtime = {
 						version = "LuaJIT",
 					},
-					-- Make the server aware of Neovim runtime files
 					workspace = {
 						checkThirdParty = true,
 						library = {
 							vim.env.VIMRUNTIME,
 						},
-						-- or pull in all of 'runtimepath'. NOTE: this is a lot slower and will cause issues when working on your own configuration (see https://github.com/neovim/nvim-lspconfig/issues/3189)
-						-- library = vim.api.nvim_get_runtime_file("", true),
 					},
 				})
 			end,
+			settings = {
+				Lua = {
+					completion = {
+						callSnippet = "Replace",
+					},
+				},
+			},
 		})
 
 		local servers = {
@@ -102,26 +107,11 @@ return { -- Main LSP Configuration
 					},
 				},
 			},
-			lua_ls = {
-				settings = {
-					Lua = {
-						completion = {
-							callSnippet = "Replace",
-						},
-					},
-				},
-			},
+			lua_ls = {},
 		}
-		-- Ensure the servers and tools above are installed
-		--  To check the current status of installed tools and/or manually install
-		--  other tools, you can run
-		--    :Mason
-		--
-		--  You can press `g?` for help in this menu.
+
 		require("mason").setup()
 
-		-- You can add other tools here that you want Mason to install
-		-- for you, so that they are available from within Neovim.
 		local ensure_installed = vim.tbl_keys(servers or {})
 		vim.list_extend(ensure_installed, {
 			"stylua", -- Used to format Lua code
@@ -134,7 +124,8 @@ return { -- Main LSP Configuration
 				function(server_name)
 					local server = servers[server_name] or {}
 					server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
-					require("lspconfig")[server_name].setup(server)
+					vim.lsp.config(server_name, server)
+					vim.lsp.enable(server_name)
 				end,
 			},
 		})
