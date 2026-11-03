@@ -39,3 +39,6 @@ luac.out
 *.x86_64
 *.hex
 
+# Machine-local Cucumber project settings
+/cucumber-projects.lua
+

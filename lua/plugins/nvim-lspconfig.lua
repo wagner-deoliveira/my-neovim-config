@@ -97,6 +97,28 @@ return { -- Main LSP Configuration
 			},
 		})
 
+		vim.lsp.config("cucumber_language_server", {
+			cmd = function(dispatchers, config)
+				return vim.lsp.rpc.start({ "cucumber-language-server", "--stdio" }, dispatchers, {
+					cwd = config.root_dir,
+				})
+			end,
+			on_init = function(client)
+				-- Optional machine-local settings, keyed by project root.
+				local path = vim.fn.stdpath("config") .. "/cucumber-projects.lua"
+				if vim.fn.filereadable(path) == 1 then
+					local ok, result = pcall(function()
+						return dofile(path)(client)
+					end)
+					if ok and type(result) == "table" then
+						client.settings.cucumber = result
+					elseif not ok then
+						vim.notify("Cucumber project settings: " .. tostring(result), vim.log.levels.ERROR)
+					end
+				end
+			end,
+		})
+
 		local servers = {
 			rust_analyzer = {
 				settings = {
@@ -108,6 +130,7 @@ return { -- Main LSP Configuration
 				},
 			},
 			lua_ls = {},
+			cucumber_language_server = {},
 		}
 
 		require("mason").setup()
